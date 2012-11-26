@@ -53,7 +53,7 @@ for row in dataReader:
 			pass
 		elif stringrow.startswith("Signature:"):
 			print stringrow
-		elif stringrow.startswith("Constant":
+		elif stringrow.startswith("Constant"):
 			pass
 		else:
 			print "GV; " + stringrow
