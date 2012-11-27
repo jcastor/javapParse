@@ -55,6 +55,8 @@ for row in dataReader:
 			print stringrow
 		elif stringrow.startswith("Constant"):
 			pass
+		elif stringrow.startswith("00"): #identify a memory address
+			pass
 		else:
 			print "GV; " + stringrow
 	elif "Signature" in stringrow and not "Start" in stringrow and globalvar == 0 and not "length" in stringrow:
