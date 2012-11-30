@@ -18,6 +18,8 @@ listofvars = {} #store the list of variables
 allvars = "" #a variable to concatenate the list of variables for easy printing
 globalvar = 0 #used to identify globalvariables in between class and methods
 bracketflag = 0
+codecount = 0
+codestore = ""
 for row in dataReader:
 	stringrow = str(row).lstrip('[\'').rstrip('\']').lstrip(' ') #strip [' '] from every line
 	if "public class" in stringrow and not "//" in stringrow: #identify the classname, filtering out comments with "//"
@@ -61,18 +63,22 @@ for row in dataReader:
 			print "GV; " + stringrow
 	elif "Signature" in stringrow and not "Start" in stringrow and globalvar == 0 and not "length" in stringrow:
 		print stringrow
+		flag = 1
 	elif "LocalVariableTable:" in stringrow and not firstlocalvartable: #identifying the first localvariabletable
 		firstlocalvartable = 1
 		flag = 1
 	elif flag:
 		if "stack=" in stringrow and "locals=" in stringrow: #after the first local variable table there is a "Code:" segment, we can use this to signify the end of the table
-			print "Code: " + stringrow
+			codecount = 1
+			codeline = "Code: " + stringrow + ", length="
 			flag = 0
 			endofvars = 1
 		else:
 			if "Code:" in stringrow:
 				pass
 			elif "Start" in stringrow: #get rid of the header of the LocalVariableTable
+				pass
+			elif "flags:" in stringrow:
 				pass
 			elif "" == stringrow:
 				endofvars = 1 #strip out blank spacing lines
@@ -81,7 +87,19 @@ for row in dataReader:
 				varname = var[len(var)-2] #grab the second last segment from each line of the LocalVariableTable (this is the variable name)
 				vartype = var[len(var)-1] #grab last segment which contains the type
 				listofvars[varname] = vartype #add the variable name to our list
+	if codecount:
+		if "LocalVariableTable" in stringrow:
+			codecount = 0
+			codestore = codestore.split(":")[0]
+		elif "}" == stringrow:
+			codecount = 0
+			codestore = codestore.split(":")[0]
+			endofvars = 1
+		else:
+			codestore = stringrow
 	elif endofvars:
+		codeline += codestore
+		print codeline
 		for (lvar,vvar) in listofvars.iteritems(): #formatting the list for printing seperated by commas
 			print "V; " + lvar + ";" + vvar
 #		print classname + "|" + method + "|" + allvars #our final print line
@@ -90,3 +108,12 @@ for row in dataReader:
 		endofvars = 0
 f.close()
 
+if endofvars:
+	codeline += codestore
+	print codeline
+	for (lvar,vvar) in listofvars.iteritems(): #formatting the list for printing seperated by commas
+		print "V; " + lvar + ";" + vvar
+#		print classname + "|" + method + "|" + allvars #our final print line
+	listofvars = {}
+	allvars = ""
+	endofvars = 0
