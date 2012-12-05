@@ -5,7 +5,7 @@ filepathname=sys.argv[1]
 f = open(filepathname, 'rb')
 
 #------ REGEX PATTERNS ------#
-classpattern = r'(^public final class)|(^public class)|(^class)|(^final class)|(^private class)|(^private final class)|(^protected class)|(^protected final class) ' #pattern used to identify a class
+classpattern = r'(^public final class)|(^public class)|(^class)|(^final class)|(^private class)|(^private final class)|(^protected class)|(^protected final class)|(^public interface)|(^interface)' #pattern used to identify a class
 methodpattern = r'(^public)|(^private)|(^protected)' #pattern used to identify a method
 signaturepattern = r'(^Signature:)' #pattern used to identify a signature
 flagpattern = r'(^flags:)' #pattern used to identify a flag
