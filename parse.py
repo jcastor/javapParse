@@ -20,9 +20,11 @@ globalvar = 0 #used to identify globalvariables in between class and methods
 bracketflag = 0
 codecount = 0
 codestore = ""
+codeline = ""
+ended = 1
 for row in dataReader:
 	stringrow = str(row).lstrip('[\'').rstrip('\']').lstrip(' ') #strip [' '] from every line
-	if "public class" in stringrow and not "//" in stringrow: #identify the classname, filtering out comments with "//"
+	if "public class" in stringrow or "public final class" in stringrow and not "//" in stringrow: #identify the classname, filtering out comments with "//"
 		classname = stringrow
 		globalvar = 1
 		print "C; " + stringrow
@@ -61,7 +63,7 @@ for row in dataReader:
 			pass
 		else:
 			print "GV; " + stringrow
-	elif "Signature" in stringrow and not "Start" in stringrow and globalvar == 0 and not "length" in stringrow:
+	elif "Signature" in stringrow and not "Start" in stringrow and globalvar == 0 and not "length" in stringrow and not "const #" in stringrow:
 		print stringrow
 		flag = 1
 	elif "LocalVariableTable:" in stringrow and not firstlocalvartable: #identifying the first localvariabletable
@@ -88,7 +90,7 @@ for row in dataReader:
 				vartype = var[len(var)-1] #grab last segment which contains the type
 				listofvars[varname] = vartype #add the variable name to our list
 	if codecount:
-		if "LocalVariableTable" in stringrow:
+		if "LocalVariableTable" in stringrow and firstlocalvartable:
 			codecount = 0
 			codestore = codestore.split(":")[0]
 		elif "}" == stringrow:
@@ -106,6 +108,8 @@ for row in dataReader:
 		listofvars = {}
 		allvars = ""
 		endofvars = 0
+		codeline = ""
+		ended = 0
 f.close()
 
 if endofvars:
@@ -117,3 +121,4 @@ if endofvars:
 	listofvars = {}
 	allvars = ""
 	endofvars = 0
+	codeline = ""
