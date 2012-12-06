@@ -5,7 +5,7 @@ filepathname=sys.argv[1]
 f = open(filepathname, 'rb')
 
 #------ REGEX PATTERNS ------#
-classpattern = r'(^public final class)|(^public class)|(^class)|(^final class)|(^private class)|(^private final class)|(^protected class)|(^protected final class)|(^public interface)|(^interface)' #pattern used to identify a class
+classpattern = r'(^public final class)|(^public class)|(^class)|(^final class)|(^private class)|(^private final class)|(^protected class)|(^protected final class)|(^public interface)|(^interface)|(^public abstract class)|(^private abstract class)|(^protected abstract class)' #pattern used to identify a class
 methodpattern = r'(^public)|(^private)|(^protected)' #pattern used to identify a method
 signaturepattern = r'(^Signature:)' #pattern used to identify a signature
 flagpattern = r'(^flags:)' #pattern used to identify a flag
@@ -20,12 +20,12 @@ excepttablepattern = r'(^Exception table:)' #identify exception table
 classregex = re.compile(classpattern)
 methodregex = re.compile(methodpattern)
 gvstartregex = re.compile(gvstartpattern)
-sigregex = re.compile(signaturepattern)
+sigregex = re.compile(signaturepattern, re.IGNORECASE)
 flagregex = re.compile(flagpattern)
 localregex = re.compile(localpattern)
 coderegex = re.compile(codepattern)
 exceptregex = re.compile(exceptpattern)
-constantregex = re.compile(constantpattern)
+constantregex = re.compile(constantpattern, re.IGNORECASE)
 lntregex = re.compile(lntpattern)
 excepttableregex = re.compile(excepttablepattern)
 
@@ -65,7 +65,7 @@ for line in f:
 		if "length =" in linestripped:
 			pass
 		else:
-			print linestripped
+			print "Signature;" + linestripped.split("Signature: ")[1]
 	if gv: #looking for global variables and signatures for them
 		if not findGV and "(" not in linestripped: #if it is not a method (javap's output will go right from GV to methods)
 			if linestripped != "": #eliminate blank lines
@@ -76,9 +76,11 @@ for line in f:
 					pass #we do not want to print the flags
 				elif findConstant:
 					pass
+				elif "}" == linestripped:
+					pass
 				else:
 					print "GV;" + linestripped #if it is not a signature or a flag it should be a global variable
-		if findMethod and "(" in linestripped: #if a method is found then that is the end of the global variables
+		if findMethod and "(" in linestripped or "}" == linestripped: #if a method is found then that is the end of the global variables
 			gv = 0
 	if local: #if a LocalVariableTable is found and only if its the first local variable table
 		findCode = coderegex.match(linestripped)
@@ -91,7 +93,7 @@ for line in f:
 				listofvars[varname] = vartype
 		if findCode or findMethod or findExcept or findSig:
 			for (lvar,vvar) in listofvars.iteritems():
-				print "V; " + lvar + ";" + vvar
+				print "V;" + lvar + ";" + vvar
 			local = 0
 			firstlocal = 1
 			listofvars = {}
@@ -104,4 +106,4 @@ for line in f:
 			lastcodeline = linestripped
 		if findLNT or findLocal or linestripped == "}" or findExceptionTable or findExcept:
 			codesegment = 0
-			print "Code:" + stackline + ", length=" + lastcodeline.split(":")[0]
+			print "Code;" + stackline + ", length=" + lastcodeline.split(":")[0]
