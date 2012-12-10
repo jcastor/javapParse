@@ -5,17 +5,17 @@ filepathname=sys.argv[1]
 f = open(filepathname, 'rb')
 
 #------ REGEX PATTERNS ------#
-classpattern = r'(^public final class)|(^public class)|(^class)|(^final class)|(^private class)|(^private final class)|(^protected class)|(^protected final class)|(^public interface)|(^interface)|(^public abstract class)|(^private abstract class)|(^protected abstract class)' #pattern used to identify a class
-methodpattern = r'(^public)|(^private)|(^protected)' #pattern used to identify a method
-signaturepattern = r'(^Signature:)' #pattern used to identify a signature
-flagpattern = r'(^flags:)' #pattern used to identify a flag
+classpattern = r'^(public |private | protected )(final|class|final class|interface|abstract class)|^(class)|^(interface)' #pattern used to identify a class
+methodpattern = r'^(public)|^(private)|^(protected)' #pattern used to identify a method
+signaturepattern = r'^(Signature:)' #pattern used to identify a signature
+flagpattern = r'^(flags:)' #pattern used to identify a flag
 gvstartpattern = r'^{' #pattern used to identify the start of global variable declarations
-localpattern = r'(^LocalVariableTable:)' #pattern used to identify localvariabletable
-codepattern = r'(^Code:)' #pattern used to identify Code: segment
-exceptpattern = r'(^Exceptions:)' #pattern used to identify Exceptions: segment
-constantpattern = r'(^Constant Value:)' #identify Constant Value
-lntpattern = r'(^LineNumberTable:)' #identify line number table
-excepttablepattern = r'(^Exception table:)' #identify exception table
+localpattern = r'^(LocalVariableTable:)' #pattern used to identify localvariabletable
+codepattern = r'^(Code:)' #pattern used to identify Code: segment
+exceptpattern = r'^(Exceptions:)' #pattern used to identify Exceptions: segment
+constantpattern = r'^(Constant Value:)' #identify Constant Value
+lntpattern = r'^(LineNumberTable:)' #identify line number table
+excepttablepattern = r'^(Exception table:)' #identify exception table
 #------ INIT REGEX ------#
 classregex = re.compile(classpattern)
 methodregex = re.compile(methodpattern)
