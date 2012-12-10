@@ -16,6 +16,7 @@ exceptpattern = r'^(Exceptions:)' #pattern used to identify Exceptions: segment
 constantpattern = r'^(Constant Value:)' #identify Constant Value
 lntpattern = r'^(LineNumberTable:)' #identify line number table
 excepttablepattern = r'^(Exception table:)' #identify exception table
+
 #------ INIT REGEX ------#
 classregex = re.compile(classpattern)
 methodregex = re.compile(methodpattern)
@@ -33,10 +34,11 @@ excepttableregex = re.compile(excepttablepattern)
 gv = 0 #used to signify when GV are starting/ending
 local = 0 #used to signify when localvariable table detected
 firstlocal = 0 #identifies the first localvartable so that we dont print them all off twice
-codesegment = 0
+codesegment = 0 #identifies a Code: segment
 ### dict to store variable names and types
 listofvars = {}
 stackline = ""
+
 for line in f:
 	linestripped = line.lstrip().rstrip('\n') #removing leading whitespace and newline characters
 	findClass = classregex.match(linestripped)
@@ -99,7 +101,6 @@ for line in f:
 			listofvars = {}
 	if codesegment: #if a Code: segment or and Except: segment is found (a method will have one or the other)
 		findLNT = lntregex.match(linestripped)
-
 		if "Stack=" in linestripped or "stack=" in linestripped:
 			stackline = linestripped
 		if not findLNT and not findLocal and linestripped != "}" and not findExceptionTable and not findExcept: #the code segment will end on either a local variable table or a line number table or a exception table
