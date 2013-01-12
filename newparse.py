@@ -14,6 +14,7 @@ localpattern = r'^(LocalVariableTable:)' #pattern used to identify localvariable
 codepattern = r'^(Code:)' #pattern used to identify Code: segment
 exceptpattern = r'^(Exceptions:)' #pattern used to identify Exceptions: segment
 constantpattern = r'^(Constant Value:)' #identify Constant Value
+mempattern = r'^([0-9])' #identify memory location (usually starts with 00)
 lntpattern = r'^(LineNumberTable:)' #identify line number table
 excepttablepattern = r'^(Exception table:)' #identify exception table
 
@@ -27,6 +28,7 @@ localregex = re.compile(localpattern)
 coderegex = re.compile(codepattern)
 exceptregex = re.compile(exceptpattern)
 constantregex = re.compile(constantpattern, re.IGNORECASE)
+memregex = re.compile(mempattern)
 lntregex = re.compile(lntpattern)
 excepttableregex = re.compile(excepttablepattern)
 
@@ -48,6 +50,7 @@ for line in f:
 	findLocal = localregex.match(linestripped)
 	findFlag = flagregex.match(linestripped)
 	findConstant = constantregex.match(linestripped)
+	findMem = memregex.match(linestripped)
 	findCode = coderegex.match(linestripped)
 	findExcept = exceptregex.match(linestripped)
 	findExceptionTable = excepttableregex.match(linestripped)
@@ -77,6 +80,8 @@ for line in f:
 				elif findFlag:
 					pass #we do not want to print the flags
 				elif findConstant:
+					pass
+				elif findMem:
 					pass
 				elif "}" == linestripped:
 					pass
