@@ -1,124 +1,115 @@
 import sys,os
-import csv
+import csv,re
 
-csv_filepathname=sys.argv[1]
-fi = open(csv_filepathname, 'rb')
-data = fi.read()
-fi.close()
-fo = open(csv_filepathname, 'wb')
-fo.write(data.replace('\x00', '')) #removing any null characters that cause the csv reader to stop functioning
-fo.close()
-f = open(csv_filepathname, 'rb')
+filepathname=sys.argv[1]
+f = open(filepathname, 'rb')
 
-dataReader = csv.reader(f)
-flag = 0 #flag identifies the start of a localvartable that identifies the variables in a method
-firstlocalvartable = 0 #the localvartable is printed twice for every method, we use this to identify the first one
-endofvars = 0 #flag to identify the end of the variable list in the localvartable
-listofvars = {} #store the list of variables
-allvars = "" #a variable to concatenate the list of variables for easy printing
-globalvar = 0 #used to identify globalvariables in between class and methods
-bracketflag = 0
-codecount = 0
-codestore = ""
-codeline = ""
-ended = 1
-for row in dataReader:
-	stringrow = str(row).lstrip('[\'').rstrip('\']').lstrip(' ') #strip [' '] from every line
-	if "public class" in stringrow or "public final class" in stringrow and not "//" in stringrow: #identify the classname, filtering out comments with "//"
-		classname = stringrow
-		globalvar = 1
-		print "C; " + stringrow
-		firstlocalvartable = 0
-		bracketflag = 0
-	elif stringrow.startswith("public") and not "const #" in stringrow and not "//" in stringrow and "(" in stringrow: #identify a public method (taking out rows with const# which often also have the method name
-		globalvar = 0
-		bracketflag = 0
-		method = stringrow.lstrip()
-		print "M; " + method
-		firstlocalvartable = 0
-	elif stringrow.startswith("private") and not "const #" in stringrow and not "//" in stringrow and "(" in stringrow:
-		globalvar = 0
-		bracketflag = 0
-		method = stringrow.lstrip()
-		print "M; " + method
-		firstlocalvartable = 0
-	elif stringrow.startswith("protected") and not "const #" in stringrow and not "//" in stringrow and "(" in stringrow:
-		globalvar = 0
-		bracketflag = 0
-		method = stringrow.lstrip()
-		print "M; " + method
-		firstlocalvartable = 0
-	elif stringrow == "{":
-		bracketflag = 1
-	elif globalvar == 1 and bracketflag:
-		if "flags:" in stringrow:
-			pass
-		elif stringrow == "":
-			pass
-		elif stringrow.startswith("Signature:"):
-			print stringrow
-		elif stringrow.startswith("Constant"):
-			pass
-		elif stringrow.startswith("00"): #identify a memory address
+#------ REGEX PATTERNS ------#
+classpattern = r'^(public |private | protected )(final [^#]|class|final class|interface|abstract class)|^(class)|^(interface)' #pattern used to identify a class
+methodpattern = r'^(public)|^(private)|^(protected)' #pattern used to identify a method
+signaturepattern = r'^(Signature:)' #pattern used to identify a signature
+flagpattern = r'^(flags:)' #pattern used to identify a flag
+gvstartpattern = r'^{' #pattern used to identify the start of global variable declarations
+localpattern = r'^(LocalVariableTable:)' #pattern used to identify localvariabletable
+codepattern = r'^(Code:)' #pattern used to identify Code: segment
+exceptpattern = r'^(Exceptions:)' #pattern used to identify Exceptions: segment
+constantpattern = r'^(Constant Value:)' #identify Constant Value
+mempattern = r'^([0-9])' #identify memory location (usually starts with 00)
+lntpattern = r'^(LineNumberTable:)' #identify line number table
+excepttablepattern = r'^(Exception table:)' #identify exception table
+
+#------ INIT REGEX ------#
+classregex = re.compile(classpattern)
+methodregex = re.compile(methodpattern)
+gvstartregex = re.compile(gvstartpattern)
+sigregex = re.compile(signaturepattern, re.IGNORECASE)
+flagregex = re.compile(flagpattern)
+localregex = re.compile(localpattern)
+coderegex = re.compile(codepattern)
+exceptregex = re.compile(exceptpattern)
+constantregex = re.compile(constantpattern, re.IGNORECASE)
+memregex = re.compile(mempattern)
+lntregex = re.compile(lntpattern)
+excepttableregex = re.compile(excepttablepattern)
+
+#------ Variables used as flags ------#
+gv = 0 #used to signify when GV are starting/ending
+local = 0 #used to signify when localvariable table detected
+firstlocal = 0 #identifies the first localvartable so that we dont print them all off twice
+codesegment = 0 #identifies a Code: segment
+### dict to store variable names and types
+listofvars = {}
+stackline = ""
+
+for line in f:
+	linestripped = line.lstrip().rstrip('\n') #removing leading whitespace and newline characters
+	findClass = classregex.match(linestripped)
+	findMethod = methodregex.match(linestripped)
+	findGV = gvstartregex.match(linestripped)
+	findSig = sigregex.match(linestripped)
+	findLocal = localregex.match(linestripped)
+	findFlag = flagregex.match(linestripped)
+	findConstant = constantregex.match(linestripped)
+	findMem = memregex.match(linestripped)
+	findCode = coderegex.match(linestripped)
+	findExcept = exceptregex.match(linestripped)
+	findExceptionTable = excepttableregex.match(linestripped)
+	if findClass:
+		print "C;" + linestripped #print if class is detected
+		firstlocal = 0
+	if findMethod and "(" in linestripped  and not findClass:
+		print "M;" + linestripped #print if method detected and class not detected
+		firstlocal = 0 #reset firstlocal on a new method as it will have a new table
+	if findGV: #if the "{" was found start looking for global variables
+		gv = 1
+	if findLocal and not firstlocal: #detect the first local variable table
+		local = 1
+	if findCode or findExcept:
+		codesegment = 1
+	if findSig: #print signatures for methods/gv
+		if "length =" in linestripped:
 			pass
 		else:
-			print "GV; " + stringrow
-	elif "Signature" in stringrow and not "Start" in stringrow and globalvar == 0 and not "length" in stringrow and not "const #" in stringrow:
-		print stringrow
-		flag = 1
-	elif "LocalVariableTable:" in stringrow and not firstlocalvartable: #identifying the first localvariabletable
-		firstlocalvartable = 1
-		flag = 1
-	elif flag:
-		if "stack=" in stringrow and "locals=" in stringrow: #after the first local variable table there is a "Code:" segment, we can use this to signify the end of the table
-			codecount = 1
-			codeline = "Code: " + stringrow + ", length="
-			flag = 0
-			endofvars = 1
-		else:
-			if "Code:" in stringrow:
-				pass
-			elif "Start" in stringrow: #get rid of the header of the LocalVariableTable
-				pass
-			elif "flags:" in stringrow:
-				pass
-			elif "" == stringrow:
-				endofvars = 1 #strip out blank spacing lines
-			else:
-				var = stringrow.split() #split the variable table, into segments
-				varname = var[len(var)-2] #grab the second last segment from each line of the LocalVariableTable (this is the variable name)
-				vartype = var[len(var)-1] #grab last segment which contains the type
-				listofvars[varname] = vartype #add the variable name to our list
-	if codecount:
-		if "LocalVariableTable" in stringrow and firstlocalvartable:
-			codecount = 0
-			codestore = codestore.split(":")[0]
-		elif "}" == stringrow:
-			codecount = 0
-			codestore = codestore.split(":")[0]
-			endofvars = 1
-		else:
-			codestore = stringrow
-	elif endofvars:
-		codeline += codestore
-		print codeline
-		for (lvar,vvar) in listofvars.iteritems(): #formatting the list for printing seperated by commas
-			print "V; " + lvar + ";" + vvar
-#		print classname + "|" + method + "|" + allvars #our final print line
-		listofvars = {}
-		allvars = ""
-		endofvars = 0
-		codeline = ""
-		ended = 0
-f.close()
-
-if endofvars:
-	codeline += codestore
-	print codeline
-	for (lvar,vvar) in listofvars.iteritems(): #formatting the list for printing seperated by commas
-		print "V; " + lvar + ";" + vvar
-#		print classname + "|" + method + "|" + allvars #our final print line
-	listofvars = {}
-	allvars = ""
-	endofvars = 0
-	codeline = ""
+			print "Signature;" + linestripped.split("Signature: ")[1]
+	if gv: #looking for global variables and signatures for them
+		if not findGV and "(" not in linestripped: #if it is not a method (javap's output will go right from GV to methods)
+			if linestripped != "": #eliminate blank lines
+				findSig = sigregex.match(linestripped)
+				if findSig:
+					pass
+				elif findFlag:
+					pass #we do not want to print the flags
+				elif findConstant:
+					pass
+				elif findMem:
+					pass
+				elif "}" == linestripped:
+					pass
+				else:
+					print "GV;" + linestripped #if it is not a signature or a flag it should be a global variable
+		if findMethod and "(" in linestripped or "}" == linestripped: #if a method is found then that is the end of the global variables
+			gv = 0
+	if local: #if a LocalVariableTable is found and only if its the first local variable table
+		findCode = coderegex.match(linestripped)
+		findExcept = exceptregex.match(linestripped)
+		if not findCode and not findMethod and not findSig and not findFlag and not findExcept:
+			if linestripped != "" and "LocalVariableTable:" not in linestripped and "Start  Length" not in linestripped:
+				var = linestripped.split()
+				varname = var[len(var)-2]
+				vartype = var[len(var)-1]
+				listofvars[varname] = vartype
+		if findCode or findMethod or findExcept or findSig:
+			for (lvar,vvar) in listofvars.iteritems():
+				print "V;" + lvar + ";" + vvar
+			local = 0
+			firstlocal = 1
+			listofvars = {}
+	if codesegment: #if a Code: segment or and Except: segment is found (a method will have one or the other)
+		findLNT = lntregex.match(linestripped)
+		if "Stack=" in linestripped or "stack=" in linestripped:
+			stackline = linestripped
+		if not findLNT and not findLocal and linestripped != "}" and not findExceptionTable and not findExcept: #the code segment will end on either a local variable table or a line number table or a exception table
+			lastcodeline = linestripped
+		if findLNT or findLocal or linestripped == "}" or findExceptionTable or findExcept:
+			codesegment = 0
+			print "Code;" + stackline + ", length=" + lastcodeline.split(":")[0]
